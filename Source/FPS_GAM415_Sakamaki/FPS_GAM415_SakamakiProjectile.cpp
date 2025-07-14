@@ -2,7 +2,10 @@
 
 #include "FPS_GAM415_SakamakiProjectile.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Components/DecalComponent.h"
 #include "Components/SphereComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 AFPS_GAM415_SakamakiProjectile::AFPS_GAM415_SakamakiProjectile() 
 {
@@ -16,8 +19,14 @@ AFPS_GAM415_SakamakiProjectile::AFPS_GAM415_SakamakiProjectile()
 	CollisionComp->SetWalkableSlopeOverride(FWalkableSlopeOverride(WalkableSlope_Unwalkable, 0.f));
 	CollisionComp->CanCharacterStepUpOn = ECB_No;
 
+	// Create mesh
+	ballMesh = CreateDefaultSubobject<UStaticMeshComponent>("Ball Mesh");
+
 	// Set as root component
 	RootComponent = CollisionComp;
+
+	// Attach mesh to root
+	ballMesh->SetupAttachment(CollisionComp);
 
 	// Use a ProjectileMovementComponent to govern this projectile's movement
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileComp"));
@@ -31,6 +40,20 @@ AFPS_GAM415_SakamakiProjectile::AFPS_GAM415_SakamakiProjectile()
 	InitialLifeSpan = 3.0f;
 }
 
+void AFPS_GAM415_SakamakiProjectile::BeginPlay()
+{
+	Super::BeginPlay();
+	// When a ball is created, create a randColor
+	randColor = FLinearColor(UKismetMathLibrary::RandomFloatInRange(0.f, 1.f), UKismetMathLibrary::RandomFloatInRange(0.f, 1.f), UKismetMathLibrary::RandomFloatInRange(0.f, 1.f), 1.f);
+	
+	// Create a Dynamic Material Instance from the projMat variable
+	dmiMat = UMaterialInstanceDynamic::Create(projMat, this);
+	ballMesh->SetMaterial(0, dmiMat);
+
+	// Setting the color of projectile to randColor
+	dmiMat->SetVectorParameterValue("ProjColor", randColor);
+}
+
 void AFPS_GAM415_SakamakiProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
 	// Only add impulse and destroy projectile if we hit a physics
@@ -39,5 +62,19 @@ void AFPS_GAM415_SakamakiProjectile::OnHit(UPrimitiveComponent* HitComp, AActor*
 		OtherComp->AddImpulseAtLocation(GetVelocity() * 100.0f, GetActorLocation());
 
 		Destroy();
+	}
+
+	if (OtherActor != nullptr)
+	{
+		// Randomly choose what splat texture to use
+		float frameNum = UKismetMathLibrary::RandomFloatInRange(0.f, 8.f);
+
+		// Create decal at the hit location of random size between 20.f and 40.f
+		auto Decal = UGameplayStatics::SpawnDecalAtLocation(GetWorld(), baseMat, FVector(UKismetMathLibrary::RandomFloatInRange(20.f, 40.f)), Hit.Location, Hit.Normal.Rotation(), 0.f);
+		auto MatInstance = Decal->CreateDynamicMaterialInstance();
+
+		// Setting the decal material parameters
+		MatInstance->SetVectorParameterValue("Color", randColor);
+		MatInstance->SetScalarParameterValue("Frame", frameNum);
 	}
 }
