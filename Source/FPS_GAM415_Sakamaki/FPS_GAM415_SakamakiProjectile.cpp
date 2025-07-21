@@ -6,6 +6,8 @@
 #include "Components/DecalComponent.h"
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 
 AFPS_GAM415_SakamakiProjectile::AFPS_GAM415_SakamakiProjectile() 
 {
@@ -66,6 +68,14 @@ void AFPS_GAM415_SakamakiProjectile::OnHit(UPrimitiveComponent* HitComp, AActor*
 
 	if (OtherActor != nullptr)
 	{
+		// Creates a particle effect with randColor value
+		if (colorP)
+		{
+			UNiagaraComponent* particleComp = UNiagaraFunctionLibrary::SpawnSystemAttached(colorP, HitComp, NAME_None, FVector(-20.f, 0.f, 0.f), FRotator(0.f), EAttachLocation::KeepRelativeOffset, true);
+			particleComp->SetNiagaraVariableLinearColor(FString("RandomColor"), randColor);
+			ballMesh->DestroyComponent();
+			CollisionComp->BodyInstance.SetCollisionProfileName("NoCollision");
+		}
 		// Randomly choose what splat texture to use
 		float frameNum = UKismetMathLibrary::RandomFloatInRange(0.f, 8.f);
 
