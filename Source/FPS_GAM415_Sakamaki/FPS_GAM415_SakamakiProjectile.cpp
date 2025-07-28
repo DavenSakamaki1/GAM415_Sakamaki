@@ -8,6 +8,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
+#include "PerlinProcTerrain.h"
 
 AFPS_GAM415_SakamakiProjectile::AFPS_GAM415_SakamakiProjectile() 
 {
@@ -86,5 +87,12 @@ void AFPS_GAM415_SakamakiProjectile::OnHit(UPrimitiveComponent* HitComp, AActor*
 		// Setting the decal material parameters
 		MatInstance->SetVectorParameterValue("Color", randColor);
 		MatInstance->SetScalarParameterValue("Frame", frameNum);
+
+		APerlinProcTerrain* procTerrain = Cast<APerlinProcTerrain>(OtherActor);
+
+		if (procTerrain)
+		{
+			procTerrain->AlterMesh(Hit.ImpactPoint);
+		}
 	}
 }
